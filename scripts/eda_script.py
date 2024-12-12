@@ -47,9 +47,13 @@ def calculate_sentiment(headline):
 # Apply sentiment analysis to the 'headline' column
 cleaned_data['sentiment_score'] = cleaned_data['headline'].apply(calculate_sentiment)
 
+# Save the data with sentiment scores
+cleaned_data_with_sentiment_path = os.path.join(src_dir, 'cleaned_data_with_sentiment.csv')
+cleaned_data.to_csv(cleaned_data_with_sentiment_path, index=False)
+
 # Save the Sentiment Analysis Results
 sentiment_analysis_path = os.path.join(outputs_dir, 'sentiment_analysis_results.txt')
-with open(sentiment_analysis_path, 'w', encoding='utf-8') as f:
+with open(sentiment_analysis_path, 'w') as f:
     f.write("Sentiment Analysis Results (headline and sentiment score):\n")
     f.write(str(cleaned_data[['headline', 'sentiment_score']].head()))
 print(f"Saved: {sentiment_analysis_path}")
@@ -81,7 +85,7 @@ topic_words = get_top_words(lda_model, vectorizer, n_top_words)
 
 # Save the Topic Modeling Results
 topic_modeling_path = os.path.join(outputs_dir, 'topic_modeling_results.txt')
-with open(topic_modeling_path, 'w', encoding='utf-8') as f:
+with open(topic_modeling_path, 'w') as f:
     f.write("Top Words from each Topic:\n")
     for idx, words in enumerate(topic_words):
         f.write(f"Topic {idx+1}: {', '.join(words)}\n")
@@ -95,7 +99,7 @@ headline_length_desc = cleaned_data['headline_length'].describe()
 
 # Save the Headline Length Statistics
 headline_length_stats_path = os.path.join(outputs_dir, 'headline_length_stats.txt')
-with open(headline_length_stats_path, 'w', encoding='utf-8') as f:
+with open(headline_length_stats_path, 'w') as f:
     f.write("Headline Length Statistics:\n")
     f.write(str(headline_length_desc))
 print(f"Saved: {headline_length_stats_path}")
@@ -106,7 +110,7 @@ top_publishers = publisher_counts.head(10)
 
 # Save the Publisher Counts
 publisher_counts_path = os.path.join(outputs_dir, 'publisher_counts.txt')
-with open(publisher_counts_path, 'w', encoding='utf-8') as f:
+with open(publisher_counts_path, 'w') as f:
     f.write("Top 10 Publishers by Article Count:\n")
     f.write(str(top_publishers))
 print(f"Saved: {publisher_counts_path}")
@@ -135,25 +139,28 @@ top_publishers_plot_path = os.path.join(plots_dir, 'top_publishers.png')
 plt.savefig(top_publishers_plot_path)
 print(f"Saved: {top_publishers_plot_path}")
 
-# Plot: Distribution of Dates
+# Plot: Distribution of Dates (Time Series Analysis)
+monthly_publications = cleaned_data.groupby(cleaned_data['date'].dt.to_period('M')).size()
 plt.figure(figsize=(12, 6))
-cleaned_data['date'].dt.year.value_counts().sort_index().plot(kind='bar', color='lightgreen')
-plt.title('Article Count by Year')
-plt.xlabel('Year')
-plt.ylabel('Article Count')
-yearly_distribution_plot_path = os.path.join(plots_dir, 'article_count_by_year.png')
-plt.savefig(yearly_distribution_plot_path)
-print(f"Saved: {yearly_distribution_plot_path}")
+monthly_publications.plot(kind='line', color='purple')
+plt.title('Article Publications Over Time')
+plt.xlabel('Month')
+plt.ylabel('Number of Publications')
+monthly_publications_plot_path = os.path.join(plots_dir, 'article_publications_over_time.png')
+plt.savefig(monthly_publications_plot_path)
+print(f"Saved: {monthly_publications_plot_path}")
 
-# Plot: Distribution of Articles per Publisher
+# Plot: Hourly Distribution of Articles
+cleaned_data['hour'] = cleaned_data['date'].dt.hour
+hourly_distribution = cleaned_data['hour'].value_counts().sort_index()
 plt.figure(figsize=(12, 6))
-publisher_counts.head(10).plot(kind='barh', color='orange')
-plt.title('Top 10 Publishers by Article Count (Horizontal)')
-plt.xlabel('Article Count')
-plt.ylabel('Publisher')
-top_publishers_horizontal_plot_path = os.path.join(plots_dir, 'top_publishers_horizontal.png')
-plt.savefig(top_publishers_horizontal_plot_path)
-print(f"Saved: {top_publishers_horizontal_plot_path}")
+hourly_distribution.plot(kind='bar', color='orange')
+plt.title('Hourly Distribution of Article Publications')
+plt.xlabel('Hour of Day')
+plt.ylabel('Number of Publications')
+hourly_distribution_plot_path = os.path.join(plots_dir, 'hourly_publications_distribution.png')
+plt.savefig(hourly_distribution_plot_path)
+print(f"Saved: {hourly_distribution_plot_path}")
 
 # Plot: Top 10 Words from Topics
 fig, axes = plt.subplots(len(topic_words), 1, figsize=(10, 6 * len(topic_words)))
