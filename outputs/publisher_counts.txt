@@ -1,0 +1,13 @@
+Top 10 Publishers by Article Count:
+publisher
+benzinga newsdesk    14750
+lisa levin           12408
+etf professor         4362
+paul quintaro         4212
+benzinga newsdesk     3177
+benzinga insights     2332
+vick meyer            2128
+charles gross         1790
+hal lindon            1470
+benzinga_newsdesk     1239
+Name: count, dtype: int64

@@ -1,0 +1,6 @@
+Top Words from each Topic:
+Topic 1: eps, estimate, sales, yoy, reports, q1, vs, est, q4, share
+Topic 2: price, target, maintains, downgrades, benzinga, 2020, earnings, raises, upgrades, lowers
+Topic 3: shares, trading, higher, market, companies, etfs, update, economic, coronavirus, lower
+Topic 4: stocks, yesterday, session, moving, movers, biggest, new, set, low, day
+Topic 5: hit, 52, week, stocks, lows, highs, thursday, friday, wednesday, monday

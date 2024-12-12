@@ -1,0 +1,10 @@
+Headline Length Statistics:
+count    55987.000000
+mean        80.015254
+std         56.126094
+min         12.000000
+25%         42.000000
+50%         63.000000
+75%         91.000000
+max        512.000000
+Name: headline_length, dtype: float64

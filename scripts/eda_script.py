@@ -3,14 +3,20 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.decomposition import LatentDirichletAllocation
+import numpy as np
 
 # Set up paths
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))  # Adjust to project root
 src_dir = os.path.join(root_dir, "src")
 plots_dir = os.path.join(root_dir, "plots")
+outputs_dir = os.path.join(root_dir, "outputs")  # Create an 'outputs' folder to save text results
 
-# Ensure plots directory exists
+# Ensure directories exist
 os.makedirs(plots_dir, exist_ok=True)
+os.makedirs(outputs_dir, exist_ok=True)
 
 # Load raw data
 data_path = os.path.join(src_dir, 'data.csv')
@@ -28,17 +34,86 @@ cleaned_data = cleaned_data.drop_duplicates()
 cleaned_data_path = os.path.join(src_dir, 'cleaned_data.csv')
 cleaned_data.to_csv(cleaned_data_path, index=False)
 
+# -------------------------
+# Sentiment Analysis
+# -------------------------
+sia = SentimentIntensityAnalyzer()
+
+# Function to calculate sentiment
+def calculate_sentiment(headline):
+    sentiment_score = sia.polarity_scores(headline)
+    return sentiment_score['compound']
+
+# Apply sentiment analysis to the 'headline' column
+cleaned_data['sentiment_score'] = cleaned_data['headline'].apply(calculate_sentiment)
+
+# Save the Sentiment Analysis Results
+sentiment_analysis_path = os.path.join(outputs_dir, 'sentiment_analysis_results.txt')
+with open(sentiment_analysis_path, 'w', encoding='utf-8') as f:
+    f.write("Sentiment Analysis Results (headline and sentiment score):\n")
+    f.write(str(cleaned_data[['headline', 'sentiment_score']].head()))
+print(f"Saved: {sentiment_analysis_path}")
+
+# -------------------------
+# Topic Modeling with LDA
+# -------------------------
+# Vectorize the headlines
+vectorizer = TfidfVectorizer(stop_words='english')
+X = vectorizer.fit_transform(cleaned_data['headline'])
+
+# Fit the LDA model
+lda_model = LatentDirichletAllocation(n_components=5, random_state=42)
+lda_model.fit(X)
+
+# Function to get top words from each topic
+def get_top_words(lda_model, vectorizer, n_top_words=10):
+    terms = vectorizer.get_feature_names_out()
+    topic_words = []
+    for topic_idx, topic in enumerate(lda_model.components_):
+        top_indices = topic.argsort()[-n_top_words:][::-1]
+        top_words = [terms[i] for i in top_indices]
+        topic_words.append(top_words)
+    return topic_words
+
+# Get the top words from each topic
+n_top_words = 10  # Display the top 10 words
+topic_words = get_top_words(lda_model, vectorizer, n_top_words)
+
+# Save the Topic Modeling Results
+topic_modeling_path = os.path.join(outputs_dir, 'topic_modeling_results.txt')
+with open(topic_modeling_path, 'w', encoding='utf-8') as f:
+    f.write("Top Words from each Topic:\n")
+    for idx, words in enumerate(topic_words):
+        f.write(f"Topic {idx+1}: {', '.join(words)}\n")
+print(f"Saved: {topic_modeling_path}")
+
+# -------------------------
 # EDA Analysis: Headline Length Statistics
+# -------------------------
 cleaned_data['headline_length'] = cleaned_data['headline'].apply(len)
-print("Headline Length Statistics:")
-print(cleaned_data['headline_length'].describe())
+headline_length_desc = cleaned_data['headline_length'].describe()
+
+# Save the Headline Length Statistics
+headline_length_stats_path = os.path.join(outputs_dir, 'headline_length_stats.txt')
+with open(headline_length_stats_path, 'w', encoding='utf-8') as f:
+    f.write("Headline Length Statistics:\n")
+    f.write(str(headline_length_desc))
+print(f"Saved: {headline_length_stats_path}")
 
 # Publisher Analysis: Count articles per publisher
 publisher_counts = cleaned_data['publisher'].value_counts()
-print("\nTop 10 Publishers by Article Count:")
-print(publisher_counts.head(10))
+top_publishers = publisher_counts.head(10)
 
+# Save the Publisher Counts
+publisher_counts_path = os.path.join(outputs_dir, 'publisher_counts.txt')
+with open(publisher_counts_path, 'w', encoding='utf-8') as f:
+    f.write("Top 10 Publishers by Article Count:\n")
+    f.write(str(top_publishers))
+print(f"Saved: {publisher_counts_path}")
+
+# -------------------------
 # Visualizations
+# -------------------------
 # Plot: Distribution of Headline Lengths
 plt.figure(figsize=(10, 6))
 sns.histplot(cleaned_data['headline_length'], bins=50, kde=True)
@@ -60,4 +135,39 @@ top_publishers_plot_path = os.path.join(plots_dir, 'top_publishers.png')
 plt.savefig(top_publishers_plot_path)
 print(f"Saved: {top_publishers_plot_path}")
 
+# Plot: Distribution of Dates
+plt.figure(figsize=(12, 6))
+cleaned_data['date'].dt.year.value_counts().sort_index().plot(kind='bar', color='lightgreen')
+plt.title('Article Count by Year')
+plt.xlabel('Year')
+plt.ylabel('Article Count')
+yearly_distribution_plot_path = os.path.join(plots_dir, 'article_count_by_year.png')
+plt.savefig(yearly_distribution_plot_path)
+print(f"Saved: {yearly_distribution_plot_path}")
+
+# Plot: Distribution of Articles per Publisher
+plt.figure(figsize=(12, 6))
+publisher_counts.head(10).plot(kind='barh', color='orange')
+plt.title('Top 10 Publishers by Article Count (Horizontal)')
+plt.xlabel('Article Count')
+plt.ylabel('Publisher')
+top_publishers_horizontal_plot_path = os.path.join(plots_dir, 'top_publishers_horizontal.png')
+plt.savefig(top_publishers_horizontal_plot_path)
+print(f"Saved: {top_publishers_horizontal_plot_path}")
+
+# Plot: Top 10 Words from Topics
+fig, axes = plt.subplots(len(topic_words), 1, figsize=(10, 6 * len(topic_words)))
+for i, top_words in enumerate(topic_words):
+    axes[i].barh(range(len(top_words)), [1] * len(top_words), align='center')
+    axes[i].set_yticks(range(len(top_words)))
+    axes[i].set_yticklabels(top_words)
+    axes[i].set_xlabel('Frequency')
+    axes[i].set_title(f'Topic {i + 1}')
+
+topic_words_plot_path = os.path.join(plots_dir, 'topic_words.png')
+plt.tight_layout()
+plt.savefig(topic_words_plot_path)
+print(f"Saved: {topic_words_plot_path}")
+
+# Show plots
 plt.show()
