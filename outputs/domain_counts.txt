@@ -1,0 +1,6 @@
+Top 10 Domains by Publisher Count:
+publisher_domain
+unknown         54788
+benzinga.com     1196
+gmail.com           3
+Name: count, dtype: int64
